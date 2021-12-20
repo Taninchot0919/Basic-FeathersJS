@@ -42,9 +42,9 @@ app.on('connection', (connection) => {
   app.channel('everybody').join(connection)
 })
 
-app.publish(() => {
-  app.channel('everybody')
-})
+// *** Important ***
+// Don't use () => {} if use can't use realtime wtfffff
+app.publish(() => app.channel('everybody'))
 
 const PORT = process.env.PORT || 9000
 app.listen(PORT).on('listening', () => {
@@ -54,4 +54,8 @@ app.listen(PORT).on('listening', () => {
 // Service link with app.use 
 app.service("messages").create({
   text: "Hello Feathers from the servers"
+})
+
+app.service("messages").on('created', (message) => {
+  console.log('Add new message : ', message)
 })
