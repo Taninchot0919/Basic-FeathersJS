@@ -1,5 +1,18 @@
 const feathers = require("@feathersjs/feathers")
-const app = feathers()
+const express = require("@feathersjs/express")
+const socketio = require("@feathersjs/socketio")
+require("dotenv").config()
+
+const app = express(feathers())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(express.static(__dirname))
+
+// use for declare app is Rest API
+app.configure(express.rest())
+
+// use for declare app use socketIO (Realtime Backend)
+app.configure(socketio())
 
 class MessageService {
   constructor() {
@@ -20,21 +33,25 @@ class MessageService {
   }
 }
 
-app.use("messageService", new MessageService())
+app.use("/messages", new MessageService())
 
-app.service("messageService").on("created", (data) => {
-  console.log("A new message has been created : ", data)
+app.use(express.errorHandler())
+
+// Create connection for socketIO ?
+app.on('connection', (connection) => {
+  app.channel('everybody').join(connection)
 })
 
-const main = async () => {
-  await app.service("messageService").create({
-    text: "Test text1"
-  })
-  await app.service("messageService").create({
-    text: "Test text2"
-  })
+app.publish(() => {
+  app.channel('everybody')
+})
 
-  const allMessage = await app.service("messageService").find()
-  console.log("All messages : ", allMessage)
-}
-main()
+const PORT = process.env.PORT || 9000
+app.listen(PORT).on('listening', () => {
+  console.log(`Feathers server listenning on port : ${PORT}`)
+})
+
+// Service link with app.use 
+app.service("messages").create({
+  text: "Hello Feathers from the servers"
+})
